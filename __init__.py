@@ -39,42 +39,47 @@ def monhisto():
 
 
 
-@app.route('/extract-minutes/<date_string>')
-def extract_minutes(date_string):
-    date_object = datetime.strptime(date_string, '%Y-%m-%dT%H:%M:%SZ')
-    minutes = date_object.minute
-    return jsonify({'minutes': minutes})
+@app.route("/commits/")
+def mescommits():
+    return render_template("commits.html")
 
-# Route pour afficher les commits dans un graphique
-@app.route('/commits/')
-def show_commits_graph():
-    # Appel API GitHub pour obtenir les commits du repo
-    commits_url = "https://api.github.com/repos/OpenRSI/5MCSI_Metriques/commits"
+# Route pour récupérer les commits via l'API GitHub
+@app.route("/api/commits/")
+def api_commits():
+    # URL de l'API GitHub pour récupérer les commits
+    url = "https://api.github.com/repos/OpenRSI/5MCSI_Metriques/commits"
+
+    # Effectuer une requête GET pour récupérer les données des commits
+    response = requests.get(url)
+
+    if response.status_code != 200:
+        return jsonify({"error": "Erreur lors de la récupération des données depuis GitHub"}), 500
+
+    # Extraire les données JSON de la réponse
+    commits_data = response.json()
     
-    # Ouvrir l'URL pour récupérer les commits
-    response = urlopen(commits_url)
-    data = json.load(response)
+    # Extraire les minutes de chaque commit
+    minutes = []
+    commit_counts = []
 
-    # Dictionnaire pour compter les commits par minute
-    commits_by_minute = {i: 0 for i in range(60)}  # Initialisation de 60 minutes avec 0 commits
+    # Compter les commits par minute
+    for commit in commits_data:
+        # Récupérer la date du commit
+        commit_date_str = commit['commit']['author']['date']
+        commit_date = datetime.strptime(commit_date_str, '%Y-%m-%dT%H:%M:%SZ')
 
-    # Extraction des minutes des commits
-    for commit in data:
-        date_string = commit['commit']['author']['date']  # Format: "2024-02-11T11:57:27Z"
-        minute = extract_commit_minute(date_string)
-        commits_by_minute[minute] += 1
+        # Extraire la minute du commit
+        minute = commit_date.minute
 
-    # Préparer les données pour le graphique
-    minutes = [i for i in range(60)]  # Les minutes de 0 à 59
-    commit_counts = [commits_by_minute[minute] for minute in minutes]
+        if minute not in minutes:
+            minutes.append(minute)
+            commit_counts.append(1)
+        else:
+            # Si la minute existe déjà, on incrémente le nombre de commits
+            index = minutes.index(minute)
+            commit_counts[index] += 1
 
-    # Créer le graphique en utilisant des données HTML et du JavaScript intégré
-    return render_template('commits.html', minutes=minutes, commit_counts=commit_counts)
-
-# Fonction pour extraire la minute d'un commit
-def extract_commit_minute(date_string):
-    # Nous utilisons le code de la route extract-minutes
-    date_object = datetime.strptime(date_string, '%Y-%m-%dT%H:%M:%SZ')
-    return date_object.minute
+    # Retourner les données des commits sous forme de JSON
+    return jsonify({"minutes": minutes, "commit_counts": commit_counts})
 if __name__ == "__main__":
   app.run(debug=True)
