@@ -44,7 +44,7 @@ YOUR_EMAIL = "asmaa.bahammou@edu.esiee-it.fr"
 
 @app.route('/commits/')
 def commits():
-    url = "https://api.github.com/repos/selenemoon/5MCSI_Metriques/commits"
+    url = "https://api.github.com/repos/selenemoon78/5MCSI_Metriques/commits"
     
     with urlopen(url) as response:
         data = json.load(response)
