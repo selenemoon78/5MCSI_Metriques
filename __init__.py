@@ -37,7 +37,6 @@ def monhisto():
     return render_template("histogramme.html")
 
   
-
 @app.route('/extract-minutes/<date_string>')
 def extract_minutes(date_string):
     date_object = datetime.strptime(date_string, '%Y-%m-%dT%H:%M:%SZ')
@@ -68,13 +67,12 @@ def show_commits_graph():
     commit_counts = [commits_by_minute[minute] for minute in minutes]
 
     # Créer le graphique en utilisant des données HTML et du JavaScript intégré
-    return render_template('commits_graph.html', minutes=minutes, commit_counts=commit_counts)
+    return render_template('commits.html', minutes=minutes, commit_counts=commit_counts)
 
 # Fonction pour extraire la minute d'un commit
 def extract_commit_minute(date_string):
     # Nous utilisons le code de la route extract-minutes
     date_object = datetime.strptime(date_string, '%Y-%m-%dT%H:%M:%SZ')
     return date_object.minute
-
 if __name__ == "__main__":
   app.run(debug=True)
