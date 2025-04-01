@@ -44,27 +44,30 @@ def extract_minutes(date_string):
     minutes = date_object.minute
     return jsonify({'minutes': minutes})
 
+# Route pour afficher les commits dans un graphique
 @app.route('/commits/')
 def show_commits_graph():
     # Appel API GitHub pour obtenir les commits du repo
     commits_url = "https://api.github.com/repos/OpenRSI/5MCSI_Metriques/commits"
-    response = requests.get(commits_url)
-    commits = response.json()
+    
+    # Ouvrir l'URL pour récupérer les commits
+    response = urlopen(commits_url)
+    data = json.load(response)
 
     # Dictionnaire pour compter les commits par minute
-    commits_by_minute = defaultdict(int)
+    commits_by_minute = {i: 0 for i in range(60)}  # Initialisation de 60 minutes avec 0 commits
 
     # Extraction des minutes des commits
-    for commit in commits:
+    for commit in data:
         date_string = commit['commit']['author']['date']  # Format: "2024-02-11T11:57:27Z"
         minute = extract_commit_minute(date_string)
         commits_by_minute[minute] += 1
 
     # Préparer les données pour le graphique
-    minutes = sorted(commits_by_minute.keys())
+    minutes = [i for i in range(60)]  # Les minutes de 0 à 59
     commit_counts = [commits_by_minute[minute] for minute in minutes]
 
-    # Créer le graphique en utilisant Google Charts
+    # Créer le graphique en utilisant des données HTML et du JavaScript intégré
     return render_template('commits_graph.html', minutes=minutes, commit_counts=commit_counts)
 
 # Fonction pour extraire la minute d'un commit
@@ -72,7 +75,6 @@ def extract_commit_minute(date_string):
     # Nous utilisons le code de la route extract-minutes
     date_object = datetime.strptime(date_string, '%Y-%m-%dT%H:%M:%SZ')
     return date_object.minute
-
 
 if __name__ == "__main__":
   app.run(debug=True)
