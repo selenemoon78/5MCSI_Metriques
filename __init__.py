@@ -47,7 +47,7 @@ def mescommits():
 @app.route("/api/commits/")
 def api_commits():
     # URL de l'API GitHub pour récupérer les commits
-    url = "https://api.github.com/repos/OpenRSI/5MCSI_Metriques/commits"
+    url = "https://api.github.com/repos/selenemoon78/5MCSI_Metriques/commits"
 
     # Effectuer une requête GET pour récupérer les données des commits
     response = requests.get(url)
