@@ -37,9 +37,6 @@ def mongraphique():
 def monhisto():
     return render_template("histogramme.html")
 
-@app.route("/commits/")
-def mescommits():
-    return render_template("commits.html")
   
 
 @app.route('/extract-minutes/<date_string>')
