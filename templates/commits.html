@@ -1,66 +1,39 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Graphique des Commits</title>
-  <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
-  <script type="text/javascript">
-    google.charts.load('current', { packages: ['corechart', 'bar'] });
-    google.charts.setOnLoadCallback(drawChart);
-
-    function drawChart() {
-      // Utiliser fetch pour récupérer les données de l'API /api/commits/
-      fetch('/api/commits/')
-        .then(response => response.json())
-        .then(data => {
-          // Si la réponse contient des erreurs, on arrête et on affiche un message
-          if (data.error) {
-            document.getElementById('chart_div').innerHTML = "Erreur: " + data.error;
-            return;
-          }
-
-          // Préparer les données pour le graphique
-          var commitData = [];
-          for (let i = 0; i < data.minutes.length; i++) {
-            commitData.push([data.minutes[i], data.commit_counts[i]]);
-          }
-
-          // Créer un DataTable Google Charts
-          var chartData = new google.visualization.DataTable();
-          chartData.addColumn('number', 'Minute');
-          chartData.addColumn('number', 'Commits');
-          chartData.addRows(commitData);
-
-          // Options du graphique
-          var options = {
-            title: 'Nombre de Commits par Minute',
-            hAxis: {
-              title: 'Minute',
-              minValue: 0,
-              maxValue: 59
-            },
-            vAxis: {
-              title: 'Nombre de Commits'
-            },
-            chartArea: { width: '80%', height: '70%' }
-          };
-
-          // Dessiner le graphique
-          var chart = new google.visualization.ColumnChart(document.getElementById('chart_div'));
-          chart.draw(chartData, options);
-        })
-        .catch(error => {
-          console.error('Erreur lors de la récupération des données', error);
-          document.getElementById('chart_div').innerHTML = "Erreur lors de la récupération des données.";
-        });
-    }
-  </script>
+    <meta charset="UTF-8">
+    <title>Commits par minute</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-
-  <h1>Graphique des Commits par Minute</h1>
-  <div id="chart_div" style="width: 900px; height: 500px;"></div>
-
+    <h2>Commits par minute (vos commits uniquement)</h2>
+    <canvas id="commitsChart" width="600" height="400"></canvas>
+    <script>
+        const minutes = {{ minutes | safe }};
+        const counts = {{ counts | safe }};
+        
+        const ctx = document.getElementById('commitsChart').getContext('2d');
+        const commitsChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: minutes,
+                datasets: [{
+                    label: 'Commits par minute',
+                    data: counts
+                }]
+            },
+            options: {
+                scales: {
+                    x: {
+                        title: { display: true, text: 'Minute (0-59)' }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        title: { display: true, text: 'Nombre de commits' }
+                    }
+                }
+            }
+        });
+    </script>
 </body>
 </html>
