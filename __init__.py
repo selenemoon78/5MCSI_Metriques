@@ -46,40 +46,47 @@ def mescommits():
 # Route pour récupérer les commits via l'API GitHub
 @app.route("/api/commits/")
 def api_commits():
-    # URL de l'API GitHub pour récupérer les commits
-    url = "https://api.github.com/repos/selenemoon78/5MCSI_Metriques/commits"
+    url = "https://api.github.com/repos/OpenRSI/5MCSI_Metriques/commits"
 
-    # Effectuer une requête GET pour récupérer les données des commits
-    response = requests.get(url)
+    try:
+        # Effectuer la requête GET pour récupérer les données des commits
+        response = requests.get(url)
 
-    if response.status_code != 200:
-        return jsonify({"error": "Erreur lors de la récupération des données depuis GitHub"}), 500
+        # Vérifier le code de réponse de l'API
+        if response.status_code != 200:
+            return jsonify({"error": f"Erreur API GitHub: {response.status_code}"}), 500
 
-    # Extraire les données JSON de la réponse
-    commits_data = response.json()
-    
-    # Extraire les minutes de chaque commit
-    minutes = []
-    commit_counts = []
+        commits_data = response.json()
 
-    # Compter les commits par minute
-    for commit in commits_data:
-        # Récupérer la date du commit
-        commit_date_str = commit['commit']['author']['date']
-        commit_date = datetime.strptime(commit_date_str, '%Y-%m-%dT%H:%M:%SZ')
+        # Vérifier si la structure des données est correcte
+        if not isinstance(commits_data, list) or len(commits_data) == 0:
+            return jsonify({"error": "Aucun commit trouvé dans la réponse de l'API"}), 500
 
-        # Extraire la minute du commit
-        minute = commit_date.minute
+        minutes = []
+        commit_counts = []
 
-        if minute not in minutes:
-            minutes.append(minute)
-            commit_counts.append(1)
-        else:
-            # Si la minute existe déjà, on incrémente le nombre de commits
-            index = minutes.index(minute)
-            commit_counts[index] += 1
+        # Compter les commits par minute
+        for commit in commits_data:
+            try:
+                commit_date_str = commit['commit']['author']['date']
+                commit_date = datetime.strptime(commit_date_str, '%Y-%m-%dT%H:%M:%SZ')
 
-    # Retourner les données des commits sous forme de JSON
-    return jsonify({"minutes": minutes, "commit_counts": commit_counts})
+                minute = commit_date.minute
+
+                if minute not in minutes:
+                    minutes.append(minute)
+                    commit_counts.append(1)
+                else:
+                    index = minutes.index(minute)
+                    commit_counts[index] += 1
+            except KeyError as e:
+                return jsonify({"error": f"Clé manquante dans les données du commit: {str(e)}"}), 500
+
+        # Retourner les données des commits sous forme de JSON
+        return jsonify({"minutes": minutes, "commit_counts": commit_counts})
+
+    except requests.exceptions.RequestException as e:
+        # Si une erreur se produit lors de la requête HTTP
+        return jsonify({"error": f"Erreur lors de la requête HTTP vers l'API GitHub: {str(e)}"}), 
 if __name__ == "__main__":
   app.run(debug=True)
