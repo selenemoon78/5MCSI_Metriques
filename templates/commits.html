@@ -10,19 +10,29 @@
     google.charts.setOnLoadCallback(drawChart);
 
     function drawChart() {
+      // Utiliser fetch pour récupérer les données de l'API /api/commits/
       fetch('/api/commits/')
         .then(response => response.json())
         .then(data => {
+          // Si la réponse contient des erreurs, on arrête et on affiche un message
+          if (data.error) {
+            document.getElementById('chart_div').innerHTML = "Erreur: " + data.error;
+            return;
+          }
+
+          // Préparer les données pour le graphique
           var commitData = [];
           for (let i = 0; i < data.minutes.length; i++) {
             commitData.push([data.minutes[i], data.commit_counts[i]]);
           }
 
+          // Créer un DataTable Google Charts
           var chartData = new google.visualization.DataTable();
           chartData.addColumn('number', 'Minute');
           chartData.addColumn('number', 'Commits');
           chartData.addRows(commitData);
 
+          // Options du graphique
           var options = {
             title: 'Nombre de Commits par Minute',
             hAxis: {
@@ -32,13 +42,18 @@
             },
             vAxis: {
               title: 'Nombre de Commits'
-            }
+            },
+            chartArea: { width: '80%', height: '70%' }
           };
 
+          // Dessiner le graphique
           var chart = new google.visualization.ColumnChart(document.getElementById('chart_div'));
           chart.draw(chartData, options);
         })
-        .catch(error => console.error('Erreur lors de la récupération des données', error));
+        .catch(error => {
+          console.error('Erreur lors de la récupération des données', error);
+          document.getElementById('chart_div').innerHTML = "Erreur lors de la récupération des données.";
+        });
     }
   </script>
 </head>
