@@ -39,62 +39,86 @@ def monhisto():
 
 
 
-@app.route("/commits/")
-def mescommits():
-    return render_template("commits.html")
-
-# Route pour récupérer les commits via l'API GitHub
-@app.route("/api/commits/")
-def api_commits():
-    url = "https://api.github.com/repos/OpenRSI/5MCSI_Metriques/commits"
+@app.route('/commits/')
+def commits():
+    url = "https://api.github.com/repos/slngithh/5MCSI_Metriques/commits"
     
-    try:
-        # Effectuer la requête GET pour récupérer les données des commits
-        response = requests.get(url)
-        
-        # Log pour vérifier l'URL et la réponse
-        app.logger.info(f"Réponse de l'API GitHub: {response.status_code}")
-        
-        # Vérifier le code de réponse de l'API
-        if response.status_code != 200:
-            app.logger.error(f"Erreur lors de l'appel API : {response.status_code}, {response.text}")
-            return jsonify({"error": f"Erreur API GitHub: {response.status_code}"}), 500
+    # Récupération des données via urllib
+    with urlopen(url) as response:
+        data = json.load(response)
 
-        commits_data = response.json()
+    # Initialisation du compteur des minutes
+    minute_counts = [0] * 60
 
-        # Vérifier si la structure des données est correcte
-        if not isinstance(commits_data, list) or len(commits_data) == 0:
-            app.logger.error(f"Aucun commit trouvé dans la réponse de l'API : {commits_data}")
-            return jsonify({"error": "Aucun commit trouvé dans la réponse de l'API"}), 500
+    # Traitement des commits
+    for commit in data:
+        try:
+            author = commit['commit']['author']
+            author_name = author['name']
+            author_email = author['email']
+            date_str = author['date']
 
-        minutes = []
-        commit_counts = []
+            # Filtrage : on ne garde que les commits de l'utilisateur courant
+            if author_name == YOUR_NAME or author_email == YOUR_EMAIL:
+                dt = datetime.strptime(date_str, '%Y-%m-%dT%H:%M:%SZ')
+                minute = dt.minute
+                minute_counts[minute] += 1
+        except:
+            continue
 
-        # Compter les commits par minute
-        for commit in commits_data:
-            try:
-                commit_date_str = commit['commit']['author']['date']
-                commit_date = datetime.strptime(commit_date_str, '%Y-%m-%dT%H:%M:%SZ')
+    # Préparation des données pour le graphique
+    minutes = list(range(60))
 
-                minute = commit_date.minute
+    # HTML avec Chart.js intégré
+    html_template = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Commits par minute</title>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    </head>
+    <body>
+        <h2>Commits par minute (vos commits uniquement)</h2>
+        <canvas id="commitsChart" width="600" height="400"></canvas>
+        <script>
+            const minutes = {{ minutes | safe }};
+            const counts = {{ counts | safe }};
 
-                if minute not in minutes:
-                    minutes.append(minute)
-                    commit_counts.append(1)
-                else:
-                    index = minutes.index(minute)
-                    commit_counts[index] += 1
-            except KeyError as e:
-                app.logger.error(f"Clé manquante dans les données du commit: {str(e)}")
-                return jsonify({"error": f"Clé manquante dans les données du commit: {str(e)}"}), 500
+            const ctx = document.getElementById('commitsChart').getContext('2d');
+            const commitsChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: minutes,
+                    datasets: [{
+                        label: 'Commits par minute',
+                        data: counts
+                    }]
+                },
+                options: {
+                    scales: {
+                        x: {
+                            title: { display: true, text: 'Minute (0-59)' }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Nombre de commits' }
+                        }
+                    }
+                }
+            });
+        </script>
+    </body>
+    </html>
+    """
 
-        # Retourner les données des commits sous forme de JSON
-        return jsonify({"minutes": minutes, "commit_counts": commit_counts})
+    return render_template_string(html_template, minutes=minutes, counts=minute_counts)
 
-    except requests.exceptions.RequestException as e:
-        # Si une erreur se produit lors de la requête HTTP
-        app.logger.error(f"Erreur lors de la requête HTTP vers l'API GitHub: {str(e)}")
-        return jsonify({"error": f"Erreur lors de la requête HTTP vers l'API GitHub: {str(e)}"}), 500
+@app.route('/extract-minutes/<date_string>')
+def extract_minutes(date_string):
+    date_object = datetime.strptime(date_string, '%Y-%m-%dT%H:%M:%SZ')
+    minutes = date_object.minute
+    return jsonify({'minutes': minutes})
+
 
 if __name__ == "__main__":
   app.run(debug=True)
